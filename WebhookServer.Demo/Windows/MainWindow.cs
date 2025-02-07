@@ -15,14 +15,14 @@ namespace WebhookServer.Demo.Windows
         {
             while (true)
             {
-                Console.WriteLine("Nhấn phím để chọn (1: Init Webhooks, Esc: Thoát):");
+                Console.WriteLine("Press key to select (1: Init Webhooks, Esc: Exit):");
                 var key = Console.ReadKey(true).Key;
 
                 if (key == ConsoleKey.D1) // Nhấn "1" để thực hiện job
                 {
                     Clear();
                     timer.Stop();
-                    Console.WriteLine("Chuyển sang BackgroundStatusWindow...");
+                    Console.WriteLine("BackgroundStatusWindow...");
                     BackgroundStatusWindow.Init();
                     BackgroundStatusWindow.Show();
                     break;
@@ -36,7 +36,7 @@ namespace WebhookServer.Demo.Windows
                     //Console.WriteLine("Phím không hợp lệ. Vui lòng thử lại.");
                 }
             }
-            Console.WriteLine("Thoát chương trình...");
+            Console.WriteLine("Exit...");
         }
 
         private static void InitClock()

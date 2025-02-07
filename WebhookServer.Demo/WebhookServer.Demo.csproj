@@ -108,7 +108,7 @@
   <ItemGroup>
     <Compile Include="Helpers\HangfireManager.cs" />
     <Compile Include="Helpers\CacheManager.cs" />
-    <Compile Include="Helpers\Utilities.cs" />
+    <Compile Include="Helpers\PreventDuplicateRecurringJobFilter.cs" />
     <Compile Include="Models\WebhookJob.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

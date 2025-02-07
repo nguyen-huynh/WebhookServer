@@ -28,7 +28,7 @@ namespace WebhookServer.Demo.Helpers
                         if (_webhooks == null) // Double-check locking
                         {
                             _webhooks = new Dictionary<int, Webhook>();
-                            InitializeWebhooks();
+                            InitializeWebhooks(10);
                         }
                     }
                 }
@@ -55,9 +55,9 @@ namespace WebhookServer.Demo.Helpers
             }
         }
 
-        private static void InitializeWebhooks()
+        private static void InitializeWebhooks(int numberOfWebhook)
         {
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < numberOfWebhook; i++)
             {
                 var webhook = new Webhook();
                 _webhooks[webhook.ID] = webhook;

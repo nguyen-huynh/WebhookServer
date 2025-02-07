@@ -2,112 +2,153 @@
 using Hangfire.Storage;
 using Polly;
 using Polly.RateLimit;
+using Polly.Timeout;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.RateLimiting;
 using System.Threading.Tasks;
 using WebhookServer.Demo.Helpers;
+using WebhookServer.Demo.Windows;
 
 namespace WebhookServer.Demo.Models
 {
     internal class WebhookJob
     {
         public static Dictionary<string, bool> JobRunningStatus = new Dictionary<string, bool>();
-        private AsyncRateLimitPolicy _rateLimiter;
+        private ResiliencePipeline _timeoutPipeline;
+        private ResiliencePipeline _rateLimiterPipeline;
 
         public ConcurrentQueue<int> MainQueue = new ConcurrentQueue<int>();  // Main Queue
 
-        private void InitRateLimiter(int rateLimit, RateUnit rateUnit)
+        /// <summary>
+        /// Init pipeline per webhook, should keep this pipeline instead of disposing after job run.
+        /// </summary>
+        private void InitPipelines(int rateLimit, RateUnit rateUnit)
         {
-            if (rateUnit == RateUnit.Hours)
+            TimeSpan timeSpan = TimeSpan.FromSeconds(30);
+            //switch (rateUnit)
+            //{
+            //    case RateUnit.Hours:
+            //        timeSpan = TimeSpan.FromHours(1);
+            //        break;
+            //    case RateUnit.Days:
+            //        timeSpan = TimeSpan.FromDays(1);
+            //        break;
+            //}
+
+            // Confire RateLimit (EX: 100 request every 30 seconds)
+            var rateLimitOptions = new SlidingWindowRateLimiterOptions
             {
-                _rateLimiter = Policy.RateLimitAsync(rateLimit, TimeSpan.FromHours(1));
-            }
-            else if (rateUnit == RateUnit.Days)
+                PermitLimit = rateLimit,  // Ratelimit
+                AutoReplenishment = true,
+                SegmentsPerWindow = 4,
+                Window = timeSpan,
+            };
+
+            // Configure timeout for Job, stop the job for {interval}
+            var timeoutOptions = new TimeoutStrategyOptions
             {
-                _rateLimiter = Policy.RateLimitAsync(rateLimit, TimeSpan.FromDays(1));
-            }
-            else
-            {
-                _rateLimiter = Policy.RateLimitAsync(rateLimit, TimeSpan.FromSeconds(30));
-            }
+                Timeout = TimeSpan.FromSeconds(30), // For test only, should based on rateUnit
+                
+            };
+
+            // Pipeline timeout for the whole job ( only apply Timeout, no RateLimit)
+            _timeoutPipeline = new ResiliencePipelineBuilder()
+                .AddTimeout(timeoutOptions)
+                .Build();
+
+            // Pipeline Rate Limiting for webhook send request (SendRequestAsync)
+            _rateLimiterPipeline = new ResiliencePipelineBuilder()
+                .AddRateLimiter(new SlidingWindowRateLimiter(rateLimitOptions))
+                .Build();
         }
 
         public async Task RunAsync(string jobId, int webhookID)
         {
-            // Kiểm tra trạng thái của job trước khi tiếp tục
             if (JobRunningStatus.ContainsKey(jobId) && JobRunningStatus[jobId])
             {
-                return; // Nếu job đã chạy, bỏ qua việc enqueue thêm job
+                return; // If there is a same webhook runing, don't run again
             }
 
             try
             {
                 JobRunningStatus[jobId] = true;
 
-                #region MyRegion
                 var webhooks = CacheManager.Webhooks;
                 var webhookQueues = CacheManager.WebhookQueues;
+
                 if (webhooks.TryGetValue(webhookID, out var webhook))
                 {
-                    InitRateLimiter(webhook.RateLimit, webhook.RateUnit);
+                    InitPipelines(webhook.RateLimit, webhook.RateUnit);
                     webhook.WebhookStatus = WebhookStatus.Running;
+                    await webhook.StartAsync();
 
-                    if (webhookQueues.TryGetValue(webhookID, out var queue))
+                    try
                     {
-                        int count = 0;
-
-                        while (count < webhook.RateLimit && queue.TryDequeue(out int requestId))
+                        // Apply timeout for the whole `RunAsync`
+                        await _timeoutPipeline.ExecuteAsync(async (token) =>
                         {
-                            try
+                            if (webhookQueues.TryGetValue(webhookID, out var queue))
                             {
-                                count++;
-                                await _rateLimiter.ExecuteAsync(async () =>
+                                int count = 0;
+                                // Check if CancellationToken request cancel this run
+                                while (!token.IsCancellationRequested && queue.TryDequeue(out int requestId))
                                 {
-                                    await Task.Delay(200); // Giả lập request mất 1000ms
-
-                                    webhook.QueueNumber = queue.Count();
-                                    if (queue.IsEmpty)
-                                        webhook.WebhookStatus = WebhookStatus.Done;
-                                });
+                                    // Aplly rate limiting per SendRequestAsync
+                                    // This means if exceed the Rate limit, throw exception and break the loop.
+                                    try
+                                    {
+                                        await _rateLimiterPipeline.ExecuteAsync(
+                                            async token2 => await SendRequestAsync(requestId, webhook, queue)
+                                        );
+                                        count++;
+                                    }
+                                    catch (RateLimitRejectedException)
+                                    {
+                                        Console.WriteLine($"Rate limit exceeded, requeue request {requestId} into failed queue");
+                                        break;
+                                    }
+                                }
                             }
-                            catch (RateLimitRejectedException)
-                            {
-                                Console.WriteLine($"Rate limit exceeded, requeue request {requestId} into failed queue");
-                                // Nếu bị rate limit, có thể đưa lại vào queue failed
-                                //queue.Enqueue(requestId);
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine($"Failed to run {ex.Message}");
-                            }
-                            finally
-                            {
-                                // Đảm bảo giải phóng semaphore khi công việc hoàn thành
-                                webhook.QueueNumber = queue.Count();
-                                if (queue.IsEmpty)
-                                    webhook.WebhookStatus = WebhookStatus.Done;
-                            }
-                        }
+                        });
                     }
-                    else
+                    catch (TimeoutRejectedException)
                     {
-                        if (webhook.QueueNumber == 0)
-                            webhook.WebhookStatus = WebhookStatus.Done;
+                        Console.WriteLine($"Timeout exceeded, Job {jobId} failed");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to run job {jobId}: {ex.Message}");
+                    }
+                    finally
+                    {
+                        await webhook.StopAsync();
                     }
                 }
-                #endregion
             }
             finally
             {
                 JobRunningStatus[jobId] = false;
             }
+        }
 
-            
-            
+        [Queue("minute-webhook"), PreventDuplicateRecurringJobFilter]
+        public async Task ShortRunAsync(string jobId, int webhookID)
+            => await RunAsync(jobId, webhookID);
+
+        [Queue("daily-webhook"), PreventDuplicateRecurringJobFilter]
+        public async Task LongRunAsync(string jobId, int webhookID)
+            => await RunAsync(jobId, webhookID);
+
+        public async Task SendRequestAsync(int queueID, Webhook webhook, ConcurrentQueue<int> queue)
+        {
+            await Task.Delay(webhook.Delay);
+            webhook.QueueNumber = queue.Count;
+            BackgroundStatusWindow.UpdateStatus(null, null);
         }
     }
 }
