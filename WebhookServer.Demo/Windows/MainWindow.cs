@@ -64,7 +64,8 @@ namespace WebhookServer.Demo.Windows
         {
             InitClock();
             Console.WriteLine("Select an option:");
-            Console.WriteLine("1. Init and start 10 webhooks\n\tAdd 500 request per webhook, webhook allow send 100 request per minute\n\tRequest cost 1 second");
+            Console.WriteLine("1. Init and start 10 webhooks" +
+                "\n\tAdd 500 request per webhook, webhook allow send 100 requests per 30 seconds");
             Console.WriteLine("\nEsc: Exit");
         }
 

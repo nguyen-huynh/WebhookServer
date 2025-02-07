@@ -21,31 +21,11 @@ namespace WebhookServer.Demo.Helpers
         public static void Configure()
         {
             //var connectionString = "Server=.;Database=webhook.cf.com;Trusted_Connection=True;";
-            //try
-            //{
-            //    using (var connection = new SqlConnection(connectionString))
-            //    {
-            //        connection.Open();
-            //        using (var command = new SqlCommand(@"
-            //DELETE FROM [HangFire].[Job];
-            //DELETE FROM [HangFire].[JobQueue];
-            //DELETE FROM [HangFire].[State];
-            //DELETE FROM [HangFire].[Server];
-            //DELETE FROM [HangFire].[List];
-            //DELETE FROM [HangFire].[Set];
-            //DELETE FROM [HangFire].[Hash];
-            //DELETE FROM [HangFire].[Counter];", connection))
-            //        {
-            //            command.ExecuteNonQuery();
-            //        }
-            //    }
-            //}
-            //catch { }
-
+            //CleanSQLTables(connectionString);
             //GlobalConfiguration.Configuration
             //    .UseSqlServerStorage(connectionString);
-            GlobalConfiguration.Configuration
-            .UseMemoryStorage();
+
+            GlobalConfiguration.Configuration.UseMemoryStorage();
             GlobalJobFilters.Filters.Add(new PreventDuplicateRecurringJobFilter());
 
             _webApp = WebApp.Start<OwinStartup>("http://localhost:5000");
@@ -73,6 +53,30 @@ namespace WebhookServer.Demo.Helpers
 
         }
 
+        private static void CleanSQLTables(string connectionString)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+                    using (var command = new SqlCommand(@"
+            DELETE FROM [HangFire].[Job];
+            DELETE FROM [HangFire].[JobQueue];
+            DELETE FROM [HangFire].[State];
+            DELETE FROM [HangFire].[Server];
+            DELETE FROM [HangFire].[List];
+            DELETE FROM [HangFire].[Set];
+            DELETE FROM [HangFire].[Hash];
+            DELETE FROM [HangFire].[Counter];", connection))
+                    {
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch { }
+        }
+
         public static void AnotherJob1()
         {
             Thread.Sleep(3600000);
@@ -87,12 +91,26 @@ namespace WebhookServer.Demo.Helpers
         {
             foreach (var webhook in CacheManager.Webhooks.Values)
             {
+                var cron = "*/30 * * * * *";// for test only,
+                //switch (webhook.RateUnit)
+                //{
+                //    case RateUnit.Minutes:
+                //        cron = "*/30 * * * * *";
+                //        break;
+                //    case RateUnit.Hours:
+                //        cron = "0 * * * *";
+                //        break;
+                //    case RateUnit.Days:
+                //        cron = "0 0 * * *";
+                //        break;
+                //}
+
                 if (webhook.JobQueue == "daily-webhook")
                 {
                     RecurringJob.AddOrUpdate(
                     webhook.Name,
                     () => new WebhookJob().LongRunAsync(webhook.Name, webhook.ID),
-                    "*/5 * * * * *"    // for test only, 
+                    cron
                     );
                 }
                 else
@@ -100,7 +118,7 @@ namespace WebhookServer.Demo.Helpers
                     RecurringJob.AddOrUpdate(
                     webhook.Name,
                     () => new WebhookJob().ShortRunAsync(webhook.Name, webhook.ID),
-                    "*/5 * * * * *"  // for test only, 
+                    cron
                     );
                 }
 
