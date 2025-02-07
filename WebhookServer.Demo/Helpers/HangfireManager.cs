@@ -20,32 +20,32 @@ namespace WebhookServer.Demo.Helpers
 
         public static void Configure()
         {
-            var connectionString = "Server=.;Database=webhook.cf.com;Trusted_Connection=True;";
-            try
-            {
-                using (var connection = new SqlConnection(connectionString))
-                {
-                    connection.Open();
-                    using (var command = new SqlCommand(@"
-            DELETE FROM [HangFire].[Job];
-            DELETE FROM [HangFire].[JobQueue];
-            DELETE FROM [HangFire].[State];
-            DELETE FROM [HangFire].[Server];
-            DELETE FROM [HangFire].[List];
-            DELETE FROM [HangFire].[Set];
-            DELETE FROM [HangFire].[Hash];
-            DELETE FROM [HangFire].[Counter];", connection))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-            catch { }
+            //var connectionString = "Server=.;Database=webhook.cf.com;Trusted_Connection=True;";
+            //try
+            //{
+            //    using (var connection = new SqlConnection(connectionString))
+            //    {
+            //        connection.Open();
+            //        using (var command = new SqlCommand(@"
+            //DELETE FROM [HangFire].[Job];
+            //DELETE FROM [HangFire].[JobQueue];
+            //DELETE FROM [HangFire].[State];
+            //DELETE FROM [HangFire].[Server];
+            //DELETE FROM [HangFire].[List];
+            //DELETE FROM [HangFire].[Set];
+            //DELETE FROM [HangFire].[Hash];
+            //DELETE FROM [HangFire].[Counter];", connection))
+            //        {
+            //            command.ExecuteNonQuery();
+            //        }
+            //    }
+            //}
+            //catch { }
 
-            GlobalConfiguration.Configuration
-                .UseSqlServerStorage(connectionString);
             //GlobalConfiguration.Configuration
-            //.UseMemoryStorage();
+            //    .UseSqlServerStorage(connectionString);
+            GlobalConfiguration.Configuration
+            .UseMemoryStorage();
             GlobalJobFilters.Filters.Add(new PreventDuplicateRecurringJobFilter());
 
             _webApp = WebApp.Start<OwinStartup>("http://localhost:5000");

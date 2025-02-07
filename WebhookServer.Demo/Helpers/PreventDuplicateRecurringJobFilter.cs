@@ -33,7 +33,7 @@ namespace WebhookServer.Demo.Helpers
 
                     if (jobs.Any(job => Compare(job, webhookName)) || jobs2.Any(job => Compare(job, webhookName)) || jobs3.Any(job => Compare(job, webhookName)))
                     {
-                        Console.WriteLine($"🔴 Job {webhookName} is canceled");
+                        //Console.WriteLine($"🔴 Job {webhookName} is canceled");
                         context.Canceled = true;
                     }
                 }
