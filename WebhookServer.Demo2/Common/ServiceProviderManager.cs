@@ -6,6 +6,8 @@ using System;
 using System.Net.Http;
 using WebhookServer.Demo2.Models;
 using WebhookServer.Demo2.Windows;
+using Hangfire;
+using Hangfire.MemoryStorage;
 
 namespace WebhookServer.Demo2.Common
 {
@@ -43,6 +45,8 @@ namespace WebhookServer.Demo2.Common
                 })
                 .AddSingleton<CacheManager>()
                 .AddSingleton<HangfireManager>()
+                .AddSingleton<WebhookRateLimitManager>()
+                .AddSingleton<WebhookRepository>()
                 .AddSingleton<IWindowManager, WindowManager>()
                 .AddSingleton<MainWindow>()
                 .AddSingleton<StatusWindow>()
@@ -60,7 +64,6 @@ namespace WebhookServer.Demo2.Common
                 });
 
             var serviceProvider = serviceCollection.BuildServiceProvider();
-
             return serviceProvider;
         }
     }

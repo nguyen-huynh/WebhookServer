@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using WebhookServer.Demo2.Models;
 
 namespace WebhookServer.Demo2.Common
@@ -9,16 +10,22 @@ namespace WebhookServer.Demo2.Common
     {
         public readonly object _consoleLock = new object();
         private readonly object _webhooksLock = new object();
-        private readonly object _queuesLock = new object();
+        private readonly object _mainQueuesLock = new object();
+        private readonly object _failedQueuesLock = new object();
+        private readonly object _databaseQueuesLock = new object();
         private readonly AppConfiguration appConfiguration;
 
-        public CacheManager (AppConfiguration appConfiguration)
+        public CacheManager(AppConfiguration appConfiguration)
         {
             this.appConfiguration = appConfiguration;
         }
-        
+
         private Dictionary<int, Webhook> _webhooks;
-        private Dictionary<int, ConcurrentQueue<int>> _webhookQueues;
+        private ConcurrentQueue<WebhookQueue> _mainQueues;
+        private ConcurrentQueue<WebhookQueue> _failedQueues;
+        private List<WebhookQueue> _databaseQueues;
+        public DateTimeOffset? NextSchedule { get; set; } = null;
+
         public Dictionary<int, Webhook> Webhooks
         {
             get
@@ -38,22 +45,51 @@ namespace WebhookServer.Demo2.Common
             }
         }
 
-        public Dictionary<int, ConcurrentQueue<int>> WebhookQueues
+        public ConcurrentQueue<WebhookQueue> MainQueues
         {
             get
             {
-                if (_webhookQueues == null)
+                if (_mainQueues == null)
                 {
-                    lock (_queuesLock)
-                    {
-                        if (_webhookQueues == null) // Double-check locking
+                    lock (_mainQueuesLock)
+                        if (_mainQueues == null)
                         {
-                            _webhookQueues = new Dictionary<int, ConcurrentQueue<int>>();
-                            InitializeQueues();
+                            _mainQueues = new ConcurrentQueue<WebhookQueue>();
                         }
-                    }
                 }
-                return _webhookQueues;
+                return _mainQueues;
+            }
+        }
+
+        public ConcurrentQueue<WebhookQueue> FailedQueues
+        {
+            get
+            {
+                if (_failedQueues == null)
+                {
+                    lock (_failedQueuesLock)
+                        if (_failedQueues == null)
+                        {
+                            _failedQueues = new ConcurrentQueue<WebhookQueue>();
+                        }
+                }
+                return _failedQueues;
+            }
+        }
+
+        public List<WebhookQueue> DatabaseQueues
+        {
+            get
+            {
+                if (_databaseQueues == null)
+                {
+                    lock (_databaseQueuesLock)
+                        if (_databaseQueues == null)
+                        {
+                            _databaseQueues = new List<WebhookQueue>();
+                        }
+                }
+                return _databaseQueues;
             }
         }
 
@@ -67,30 +103,22 @@ namespace WebhookServer.Demo2.Common
             }
         }
 
-        private void InitializeQueues()
+        public async Task EnqueueRequest(WebhookQueue queue)
         {
-            foreach (var webhook in Webhooks.Values)
+            MainQueues.Enqueue(queue);
+        }
+
+        public async Task RetryFailedRequest()
+        {
+            while (!FailedQueues.IsEmpty && FailedQueues.TryDequeue(out var queue))
             {
-                _webhookQueues[webhook.ID] = new ConcurrentQueue<int>();
+                MainQueues.Enqueue(queue);
             }
         }
 
-        public void EnqueueWebhookItems()
+        public async Task EnqueueFailedRequest(WebhookQueue queue)
         {
-            lock (_queuesLock)
-            {
-                foreach (var webhook in Webhooks.Values)
-                {
-                    if (WebhookQueues.TryGetValue(webhook.ID, out var queue))
-                    {
-                        for (int i = 0; i < webhook.TotalQueue; i++)
-                        {
-                            queue.Enqueue(i);
-                        }
-                        webhook.QueueNumber = queue.ToArray().Length;
-                    }
-                }
-            }
+            FailedQueues.Enqueue(queue);
         }
     }
 }

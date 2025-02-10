@@ -34,7 +34,7 @@ namespace WebhookServer.Demo2.Models
         public bool IsEnabled { get; set; }
         public int RateLimit { get; set; }
         public RateUnit RateUnit { get; set; }
-        public int QueueNumber { get; set; }
+        public int SuccessQueueNumber { get; set; } = 0;
         public WebhookStatus WebhookStatus { get; set; } = WebhookStatus.NotRun;
         public int TotalQueue { get; set; }
         public int Delay { get; set; }
@@ -47,9 +47,9 @@ namespace WebhookServer.Demo2.Models
             ID = ++_lastId;
             Name = $"Webhook-{ID}";
             IsEnabled = true;
-            RateLimit = 100;
+            RateLimit = 50;
             //TotalQueue = 50 * ID;
-            TotalQueue = 500;
+            TotalQueue = 100;
 
             //RateUnit = GetRandomEnumValue<RateUnit>(_random);
             RateUnit = ID >= 9 ? RateUnit.Days : (ID >= 6 ? RateUnit.Hours : RateUnit.Minutes);
@@ -79,7 +79,7 @@ namespace WebhookServer.Demo2.Models
             return $"{Name,-10} " +
                 $"- Speed/[{RateUnit,7}] [{Speed,4}] " +
                 $"- Status [{WebhookStatus,-8}] " +
-                $"- Processed/Total [{TotalQueue - QueueNumber,4}/{TotalQueue,4}] " +
+                $"- Processed/Total [{SuccessQueueNumber,4}/{TotalQueue,4}] " +
                 //$"- Remaining [{QueueNumber,4}] [] " +
                 $"- RunTime [{Stopwatch.ElapsedMilliseconds / 100, 4}]";
         }
@@ -91,20 +91,14 @@ namespace WebhookServer.Demo2.Models
 
         public async Task StartAsync()
         {
-            //this.WebhookStatus = WebhookStatus.Running;
-            //Stopwatch.Start();
+            this.WebhookStatus = WebhookStatus.Running;
+            Stopwatch.Start();
         }
 
         public async Task StopAsync()
         {
-            //this.WebhookStatus = WebhookStatus.Stoped;
-            //Stopwatch.Stop();
-            //var cache = CacheManager.WebhookQueues;
-            //if (cache.TryGetValue(this.ID, out var queue))
-            //{
-            //    if (queue.IsEmpty)
-            //        this.WebhookStatus = WebhookStatus.Done;
-            //}
+            this.WebhookStatus = WebhookStatus.Stoped;
+            Stopwatch.Stop();
         }
     }
 

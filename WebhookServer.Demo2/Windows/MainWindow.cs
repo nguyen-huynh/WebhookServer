@@ -17,7 +17,10 @@ namespace WebhookServer.Demo2.Windows
 
             _inputHandler = new Dictionary<ConsoleKey, Func<Task<bool>>>
             {
-                { ConsoleKey.Escape, async () => false },
+                { ConsoleKey.Escape, async () => {
+                    windowManager.SetNextWindow(null);
+                    return false;
+                }},
                 { ConsoleKey.D1, async () =>
                     {
                         windowManager.SetNextWindow<StatusWindow>();
@@ -32,7 +35,8 @@ namespace WebhookServer.Demo2.Windows
             Console.Clear();
             Console.WriteLine("Select an option:");
             Console.WriteLine("1. Init and start 10 webhooks with 100 request" +
-                "\n\tAfter starting, press 'A' key to add random 25-75 requests to each webhook");
+                "\n\tAfter starting, press 'A' key to add 50 requests to random webhook " +
+                "\n\tor '1-9' to add 50 request to selected webhook");
             Console.WriteLine("\nEsc: Exit");
         }
     }

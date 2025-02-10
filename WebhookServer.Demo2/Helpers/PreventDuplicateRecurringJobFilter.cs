@@ -2,47 +2,83 @@
 using Hangfire.Client;
 using Hangfire.Common;
 using Hangfire.Server;
+using Hangfire.States;
 using Hangfire.Storage.Monitoring;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using WebhookServer.Demo2.Common;
 using WebhookServer.Demo2.Models;
 
 namespace WebhookServer.Demo2.Helpers
 {
-
     public class PreventDuplicateRecurringJobFilter : JobFilterAttribute, IClientFilter
     {
+        private readonly List<string> states;
+
+        public PreventDuplicateRecurringJobFilter(string states)
+        {
+            this.states = states?.Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries).ToList() ?? new List<string>();
+        }
+
         public void OnCreating(CreatingContext context)
         {
             if (context.Job != null && context.Connection != null)
             {
-                if (context.Job.Type != typeof(WebhookJob))
+                if (context.Job.Type != typeof(WebhookRepository))
                     return;
+                
+                var methodName = context.Job.Method.Name;
+                if (!states.Contains(context.InitialState.Name)) return;
 
-                var webhookName = context.Job.Args[0]?.ToString();
-
-                if (!string.IsNullOrEmpty(webhookName))
+                if (!string.IsNullOrEmpty(methodName))
                 {
-                    var monitorAPI =  JobStorage.Current.GetMonitoringApi();
-                    var jobs = monitorAPI.EnqueuedJobs("daily-webhook", 0, int.MaxValue);
-                    var jobs2 = monitorAPI.EnqueuedJobs("hour-webhook", 0, int.MaxValue);
-                    var jobs3 = monitorAPI.EnqueuedJobs("minute-webhook", 0, int.MaxValue);
+                    var monitorAPI = JobStorage.Current.GetMonitoringApi();
+                    var jobs = monitorAPI.EnqueuedJobs("webhook-job", 0, int.MaxValue);
 
-                    if (jobs.Any(job => Compare(job, webhookName)) || jobs2.Any(job => Compare(job, webhookName)) || jobs3.Any(job => Compare(job, webhookName)))
+                    if (jobs.Any(job => Compare(job, methodName)))
                     {
-                        //Console.WriteLine($"🔴 Job {webhookName} is canceled");
+                        //_logger.LogInformation($"🔴 Job {webhookName} is canceled");
                         context.Canceled = true;
+                        return;
+                    }
+                    var scheduledJobs = monitorAPI.ScheduledJobs(0, int.MaxValue);
+                    if (scheduledJobs.Any(job => Compare(job, methodName)))
+                    {
+                        //_logger.LogInformation($"🔴 Job {webhookName} is canceled");
+                        context.Canceled = true;
+                        return;
+                    }
+                    var processingJobs = monitorAPI.ProcessingJobs(0, int.MaxValue);
+                    if (processingJobs.Any(job => Compare(job, methodName)))
+                    {
+                        //_logger.LogInformation($"🔴 Job {webhookName} is canceled");
+                        context.Canceled = true;
+                        return;
                     }
                 }
             }
         }
 
-        private bool Compare(KeyValuePair<string, EnqueuedJobDto> job, string webhookName)
+        private bool Compare(KeyValuePair<string, EnqueuedJobDto> job, string value)
         {
-            if (job.Value.Job.Type != typeof(WebhookJob)) return false;
-            var jobName = job.Value.Job.Args[0]?.ToString();
-            return jobName == webhookName;
+            if (job.Value.Job.Type != typeof(WebhookRepository)) return false;
+            var jobMethodName = job.Value.Job.Method.Name;
+            return jobMethodName == value;
+        }
+
+        private bool Compare(KeyValuePair<string, ScheduledJobDto> job, string value)
+        {
+            if (job.Value.Job.Type != typeof(WebhookRepository)) return false;
+            var jobMethodName = job.Value.Job.Method.Name;
+            return jobMethodName == value;
+        }
+
+        private bool Compare(KeyValuePair<string, ProcessingJobDto> job, string value)
+        {
+            if (job.Value.Job.Type != typeof(WebhookRepository)) return false;
+            var jobMethodName = job.Value.Job.Method.Name;
+            return jobMethodName == value;
         }
 
         public void OnCreated(CreatedContext context)
