@@ -33,7 +33,7 @@ namespace WebhookServer.Demo2.Helpers
 
                 if (!string.IsNullOrEmpty(methodName))
                 {
-                    var monitorAPI = JobStorage.Current.GetMonitoringApi();
+                    var monitorAPI = context.Storage.GetMonitoringApi();
                     var jobs = monitorAPI.EnqueuedJobs("webhook-job", 0, int.MaxValue);
 
                     if (jobs.Any(job => Compare(job, methodName)))

@@ -112,6 +112,10 @@ namespace WebhookServer.Demo2.Common
                     }
                     catch (RateLimiterRejectedException ex)
                     {
+                        // Not sure why RateLimiter not return RetryAfter
+                        // If RetryAfter is null, need to calculate new next schedule
+                        // For long interval, it maybe wait almost the interval time
+                        // Will need to get the correct retry after here, better be {interval/4}
                         var retryAfter = ex.RetryAfter;
                         if (!retryAfter.HasValue)
                         {

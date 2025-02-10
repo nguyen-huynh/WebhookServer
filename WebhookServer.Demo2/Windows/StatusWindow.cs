@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,6 +12,7 @@ namespace WebhookServer.Demo2.Windows
     public class StatusWindow : BaseWindow, IWindow
     {
         private readonly IWindowManager windowManager;
+        private readonly ILogger<StatusWindow> logger;
         private readonly HangfireManager hangfireManager;
         private readonly CacheManager cache;
         private readonly WebhookRepository webhookRepository;
@@ -20,11 +22,13 @@ namespace WebhookServer.Demo2.Windows
 
         public StatusWindow(IServiceProvider serviceProvider,
                             IWindowManager windowManager,
+                            ILogger<StatusWindow> logger,
                             HangfireManager hangfireManager,
                             CacheManager cache,
                             WebhookRepository webhookRepository) : base(serviceProvider)
         {
             this.windowManager = windowManager;
+            this.logger = logger;
             this.hangfireManager = hangfireManager;
             this.cache = cache;
             this.webhookRepository = webhookRepository;
@@ -119,7 +123,9 @@ namespace WebhookServer.Demo2.Windows
                     cache.DatabaseQueues.Add(queue);
                     webhook.TotalQueue++;
                 };
+                logger.LogInformation($"Added 50 requests to {webhook.Name}");
             }
+            
             webhookRepository.MainJobRunInBackground();
             return true;
         }
