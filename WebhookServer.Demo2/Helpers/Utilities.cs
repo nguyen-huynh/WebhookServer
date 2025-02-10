@@ -11,7 +11,7 @@ namespace WebhookServer.Demo2.Helpers
     {
         public static TimeSpan RateUnitToInterval(RateUnit rateUnit)
         {
-            TimeSpan timeSpan = TimeSpan.FromSeconds(30);
+            TimeSpan timeSpan = TimeSpan.FromSeconds(10);
             switch (rateUnit)
             {
                 case RateUnit.Hours:

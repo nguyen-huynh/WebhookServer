@@ -38,21 +38,24 @@ namespace WebhookServer.Demo2.Helpers
 
                     if (jobs.Any(job => Compare(job, methodName)))
                     {
-                        //_logger.LogInformation($"🔴 Job {webhookName} is canceled");
                         context.Canceled = true;
                         return;
                     }
                     var scheduledJobs = monitorAPI.ScheduledJobs(0, int.MaxValue);
                     if (scheduledJobs.Any(job => Compare(job, methodName)))
                     {
-                        //_logger.LogInformation($"🔴 Job {webhookName} is canceled");
-                        context.Canceled = true;
+                        var onOgingJob = scheduledJobs.FirstOrDefault(job => Compare(job, methodName));
+                        if (onOgingJob.Value.EnqueueAt < DateTime.Now)
+                        {
+                            // Remove ongoingjob here
+                            BackgroundJob.Delete(onOgingJob.Key);
+                        }
+                        context.Canceled = false;
                         return;
                     }
                     var processingJobs = monitorAPI.ProcessingJobs(0, int.MaxValue);
                     if (processingJobs.Any(job => Compare(job, methodName)))
                     {
-                        //_logger.LogInformation($"🔴 Job {webhookName} is canceled");
                         context.Canceled = true;
                         return;
                     }

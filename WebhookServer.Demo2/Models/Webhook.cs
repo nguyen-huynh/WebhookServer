@@ -56,17 +56,17 @@ namespace WebhookServer.Demo2.Models
             switch (RateUnit)
             {
                 case RateUnit.Minutes:
-                    Delay = 100;
+                    Delay = 25;
                     JobQueue = "minute-webhook";
                     break;
                 case RateUnit.Hours:
                     //Delay = 300;
-                    Delay = 100;
+                    Delay = 25;
                     JobQueue = "minute-webhook";
                     break;
                 case RateUnit.Days:
                     //Delay = 1000;
-                    Delay = 100;
+                    Delay = 25;
                     JobQueue = "daily-webhook";
                     break;
             }
