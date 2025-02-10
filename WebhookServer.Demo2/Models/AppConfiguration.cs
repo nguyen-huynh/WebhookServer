@@ -14,6 +14,9 @@ namespace WebhookServer.Demo2.Models
         public int InitMinuteQueue { get; set; } = 300;
         public int InitHourQueue { get; set; } = 100;
         public int InitDayQueue { get; set; } = 50;
+        public int RateLimitMinuteQueue { get; set; } = 50;
+        public int RateLimitHourQueue { get; set; } = 100;
+        public int RateLimitDayQueue { get; set; } = 1000;
         public int WebhookRequestTimeout { get; set; } = 30;
     }
 }

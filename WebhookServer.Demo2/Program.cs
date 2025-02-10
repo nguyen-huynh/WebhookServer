@@ -12,6 +12,12 @@ namespace WebhookServer.Demo2
     {
         public static async Task Main(string[] args)
         {
+            // Set console window width
+            Console.WindowWidth = 150;
+
+            // Set buffer width to match (optional)
+            Console.BufferWidth = 200;
+
             using (var serviceProvider = ServiceProviderManager.GetServiceProvider())
             {
                 var logger = serviceProvider.GetService<ILogger<Program>>();

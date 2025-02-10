@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using WebhookServer.Demo2.Helpers;
 using WebhookServer.Demo2.Models;
 
 namespace WebhookServer.Demo2.Common
@@ -102,17 +103,21 @@ namespace WebhookServer.Demo2.Common
                 {
                     case RateUnit.Minutes:
                         webhook.TotalQueue = appConfiguration.InitMinuteQueue;
+                        webhook.RateLimit = appConfiguration.RateLimitMinuteQueue;
                         break;
                     case RateUnit.Hours:
                         webhook.TotalQueue = appConfiguration.InitHourQueue;
+                        webhook.RateLimit = appConfiguration.RateLimitHourQueue;
                         break;
                     case RateUnit.Days:
                         webhook.TotalQueue = appConfiguration.InitDayQueue;
+                        webhook.RateLimit = appConfiguration.RateLimitDayQueue;
                         break;
                     default:
                         break;
                 }
-                
+                webhook.Interval = (int)Utilities.RateUnitToInterval(webhook.RateUnit).TotalSeconds;
+
                 _webhooks[webhook.ID] = webhook;
             }
         }

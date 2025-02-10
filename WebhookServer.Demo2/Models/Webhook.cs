@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WebhookServer.Demo2.Common;
+using WebhookServer.Demo2.Helpers;
 
 namespace WebhookServer.Demo2.Models
 {
@@ -22,6 +23,7 @@ namespace WebhookServer.Demo2.Models
         Running = 1,
         Stoped = 2,
         Done = 3,
+        Waiting = 4,
     }
 
     public class Webhook
@@ -41,6 +43,7 @@ namespace WebhookServer.Demo2.Models
         public int Speed { get; set; }
         public Stopwatch Stopwatch { get; set; }
         public string JobQueue { get; set; }
+        public int Interval { get; set; }
 
         public Webhook()
         {
@@ -53,23 +56,7 @@ namespace WebhookServer.Demo2.Models
 
             //RateUnit = GetRandomEnumValue<RateUnit>(_random);
             RateUnit = ID >= 9 ? RateUnit.Days : (ID >= 6 ? RateUnit.Hours : RateUnit.Minutes);
-            switch (RateUnit)
-            {
-                case RateUnit.Minutes:
-                    Delay = 25;
-                    JobQueue = "minute-webhook";
-                    break;
-                case RateUnit.Hours:
-                    //Delay = 300;
-                    Delay = 25;
-                    JobQueue = "minute-webhook";
-                    break;
-                case RateUnit.Days:
-                    //Delay = 1000;
-                    Delay = 25;
-                    JobQueue = "daily-webhook";
-                    break;
-            }
+            Delay = 25;
             Speed = 1 * 1000 / Delay;
             Stopwatch = new Stopwatch();
         }
@@ -77,7 +64,8 @@ namespace WebhookServer.Demo2.Models
         public override string ToString()
         {
             return $"{Name,-10} " +
-                $"- Request/second [{Speed,4}] " +
+                $"- Speed [{Speed,4}/s] " +
+                $"- Rate [{RateLimit, 4} per {Interval,4} second]" +
                 $"- Status [{WebhookStatus,-8}] " +
                 $"- Processed/Total [{SuccessQueueNumber,4}/{TotalQueue,4}] " +
                 //$"- Remaining [{QueueNumber,4}] [] " +
@@ -98,6 +86,8 @@ namespace WebhookServer.Demo2.Models
         public async Task StopAsync()
         {
             this.WebhookStatus = WebhookStatus.Stoped;
+            if (this.SuccessQueueNumber == this.TotalQueue)
+                this.WebhookStatus = WebhookStatus.Done;
             Stopwatch.Stop();
         }
     }

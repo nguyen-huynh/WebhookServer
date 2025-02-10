@@ -75,7 +75,14 @@ namespace WebhookServer.Demo2.Windows
             {
                 if (isStoping) return true;
                 Console.SetCursorPosition(0, 0);
-                Console.WriteLine($"{DateTime.UtcNow.ToString("HH:mm:ss"),-20} - Next Schdule: {cache.NextSchedule?.DateTime.ToString("HH:mm:ss"),-20} - MainQueues: {cache.MainQueues.Count,5} - FailedQueues: {cache.FailedQueues.Count,5}");
+                Console.WriteLine($"{DateTime.UtcNow.ToString("HH:mm:ss"),-10} " +
+                    $"- Next Schdule: {cache.NextSchedule?.DateTime.ToString("HH:mm:ss"),-10} " +
+                    $"- Database: {cache.DatabaseQueues.Count,5} " +
+                    $"- MainQueues: {cache.MainQueues.Count,5} " +
+                    $"- FailedQueues: {cache.FailedQueues.Count,5}");
+                
+                // Header
+
                 foreach (var webhook in cache.Webhooks.Values)
                 {
                     Console.WriteLine(webhook.ToString());
@@ -93,6 +100,7 @@ namespace WebhookServer.Demo2.Windows
             _ = this.cache.Webhooks;
             _ = this.cache.MainQueues;
             _ = this.cache.FailedQueues;
+            _ = this.cache.DatabaseQueues;
             isStoping = false;
 
             foreach (var webhook in this.cache.Webhooks.Values)
@@ -125,6 +133,9 @@ namespace WebhookServer.Demo2.Windows
                     webhook.TotalQueue++;
                 };
                 logger.LogInformation($"Added 100 requests to {webhook.Name}");
+                if (webhook.WebhookStatus == WebhookStatus.Done
+                    && webhook.TotalQueue > webhook.SuccessQueueNumber)
+                    webhook.WebhookStatus = WebhookStatus.Waiting;
             }
             
             webhookRepository.MainJobRunInBackground();

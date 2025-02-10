@@ -61,7 +61,7 @@ namespace WebhookServer.Demo2.Common
             }
             else
             {
-                MainJobRunInBackground();
+                BackgroundJob.Schedule<WebhookRepository>(job => job.MainJobRunAsync(), TimeSpan.FromSeconds(0));
             }
         }
 
