@@ -120,6 +120,8 @@ namespace WebhookServer.Demo2.Common
                         if (!retryAfter.HasValue)
                         {
                             retryAfter = Utilities.RateUnitToInterval(webhook.RateUnit);
+                            var seconds = retryAfter.Value.TotalSeconds / 4;
+                            retryAfter = TimeSpan.FromSeconds(seconds);
                         }
 
                         var retryTime = DateTimeOffset.UtcNow + retryAfter.Value;
@@ -148,7 +150,7 @@ namespace WebhookServer.Demo2.Common
             await webhookRateLimitManager.TimeoutPipeline.ExecuteAsync(async token =>
             {
                 await Task.Delay(webhook.Delay, token);
-                webhook.SuccessQueueNumber++;
+                Interlocked.Increment(ref webhook.SuccessQueueNumber);
             });
         }
     }

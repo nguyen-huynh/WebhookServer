@@ -64,7 +64,8 @@ namespace WebhookServer.Demo2.Windows
             Console.Clear();
             Console.WriteLine("Select an option:");
             Console.WriteLine("S. Press 'S' to start webhook");
-            Console.WriteLine("A. During job runing, press 'A' to enqueue 100 requests to all webhook");
+            Console.WriteLine("A. During job runing, press 'A' to enqueue 100 requests to random webhook" +
+                "\n'1-9' to add 100 request to selected webhook");
             Console.WriteLine("\nEsc: Exit");
         }
 
@@ -117,13 +118,13 @@ namespace WebhookServer.Demo2.Windows
             webhookID = webhookID ?? (random.Next(10) + 1);
             if (cache.Webhooks.TryGetValue(webhookID.Value, out var webhook))
             {
-                for (int i = 0; i < 50; i++)
+                for (int i = 0; i < 100; i++)
                 {
                     var queue = new WebhookQueue { WebhookID = webhookID.Value };
                     cache.DatabaseQueues.Add(queue);
                     webhook.TotalQueue++;
                 };
-                logger.LogInformation($"Added 50 requests to {webhook.Name}");
+                logger.LogInformation($"Added 100 requests to {webhook.Name}");
             }
             
             webhookRepository.MainJobRunInBackground();

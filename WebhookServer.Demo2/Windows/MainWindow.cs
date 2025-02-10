@@ -34,8 +34,8 @@ namespace WebhookServer.Demo2.Windows
         {
             Console.Clear();
             Console.WriteLine("Select an option:");
-            Console.WriteLine("1. Init and start 10 webhooks with 100 request" +
-                "\n\tAfter starting, press 'A' key to add 50 requests to random webhook " +
+            Console.WriteLine("1. Init and start 10 webhooks with 300-100-50 request" +
+                "\n\tAfter starting, press 'A' key to add 100 requests to random webhook " +
                 "\n\tor '1-9' to add 50 request to selected webhook");
             Console.WriteLine("\nEsc: Exit");
         }

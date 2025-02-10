@@ -98,7 +98,21 @@ namespace WebhookServer.Demo2.Common
             for (int i = 0; i < numberOfWebhook; i++)
             {
                 var webhook = new Webhook();
-                webhook.TotalQueue = appConfiguration.InitQueuePerWebhook;
+                switch (webhook.RateUnit)
+                {
+                    case RateUnit.Minutes:
+                        webhook.TotalQueue = appConfiguration.InitMinuteQueue;
+                        break;
+                    case RateUnit.Hours:
+                        webhook.TotalQueue = appConfiguration.InitHourQueue;
+                        break;
+                    case RateUnit.Days:
+                        webhook.TotalQueue = appConfiguration.InitDayQueue;
+                        break;
+                    default:
+                        break;
+                }
+                
                 _webhooks[webhook.ID] = webhook;
             }
         }

@@ -11,7 +11,9 @@ namespace WebhookServer.Demo2.Models
         public int TargetFPS { get; set; } = 30;
         public int TargetFrameRate { get { return 1000 / TargetFPS; } }
         public int NoOfWebhooks { get; set; } = 10;
-        public int InitQueuePerWebhook { get; set; } = 100;
+        public int InitMinuteQueue { get; set; } = 300;
+        public int InitHourQueue { get; set; } = 100;
+        public int InitDayQueue { get; set; } = 50;
         public int WebhookRequestTimeout { get; set; } = 30;
     }
 }

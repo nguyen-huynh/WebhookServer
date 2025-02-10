@@ -34,7 +34,7 @@ namespace WebhookServer.Demo2.Models
         public bool IsEnabled { get; set; }
         public int RateLimit { get; set; }
         public RateUnit RateUnit { get; set; }
-        public int SuccessQueueNumber { get; set; } = 0;
+        public int SuccessQueueNumber = 0;
         public WebhookStatus WebhookStatus { get; set; } = WebhookStatus.NotRun;
         public int TotalQueue { get; set; }
         public int Delay { get; set; }
@@ -47,9 +47,9 @@ namespace WebhookServer.Demo2.Models
             ID = ++_lastId;
             Name = $"Webhook-{ID}";
             IsEnabled = true;
-            RateLimit = 50;
+            RateLimit = 100;
             //TotalQueue = 50 * ID;
-            TotalQueue = 100;
+            TotalQueue = 300;
 
             //RateUnit = GetRandomEnumValue<RateUnit>(_random);
             RateUnit = ID >= 9 ? RateUnit.Days : (ID >= 6 ? RateUnit.Hours : RateUnit.Minutes);
@@ -70,14 +70,14 @@ namespace WebhookServer.Demo2.Models
                     JobQueue = "daily-webhook";
                     break;
             }
-            Speed = 30 * 1000 / Delay;
+            Speed = 1 * 1000 / Delay;
             Stopwatch = new Stopwatch();
         }
 
         public override string ToString()
         {
             return $"{Name,-10} " +
-                $"- Speed/[{RateUnit,7}] [{Speed,4}] " +
+                $"- Request/second [{Speed,4}] " +
                 $"- Status [{WebhookStatus,-8}] " +
                 $"- Processed/Total [{SuccessQueueNumber,4}/{TotalQueue,4}] " +
                 //$"- Remaining [{QueueNumber,4}] [] " +
