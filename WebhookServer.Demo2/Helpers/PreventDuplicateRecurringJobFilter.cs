@@ -49,8 +49,12 @@ namespace WebhookServer.Demo2.Helpers
                         {
                             // Remove ongoingjob here
                             BackgroundJob.Delete(onOgingJob.Key);
+                            context.Canceled = false;
                         }
-                        context.Canceled = false;
+                        else
+                        {
+                            context.Canceled = true;
+                        }
                         return;
                     }
                     var processingJobs = monitorAPI.ProcessingJobs(0, int.MaxValue);
