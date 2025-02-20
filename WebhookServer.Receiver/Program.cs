@@ -16,7 +16,7 @@ namespace WebhookServer.Receiver
 
             using (WebApp.Start<Startup>(baseAddress))
             {
-                Console.WriteLine($"API chạy tại {baseAddress}");
+                Console.WriteLine($"API started at {baseAddress}");
                 Console.ReadLine(); // Giữ console mở
             }
         }
@@ -28,11 +28,14 @@ namespace WebhookServer.Receiver
         {
             HttpConfiguration config = new HttpConfiguration();
 
-            // Cấu hình Web API routes
+            // Cấu hình route theo thuộc tính
+            config.MapHttpAttributeRoutes();
+
+            // Cấu hình route thông thường
             config.Routes.MapHttpRoute(
                 name: "DefaultApi",
-                routeTemplate: "api/{controller}/{action}",
-                defaults: new { action = RouteParameter.Optional }
+                routeTemplate: "api/{controller}/{id}",
+                defaults: new { id = RouteParameter.Optional }
             );
 
             // Thêm Swagger
